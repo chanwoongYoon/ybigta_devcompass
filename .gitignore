@@ -1,0 +1,37 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python / Jupyter
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local data and generated outputs
+*.csv
+*.parquet
+*.jsonl
+data/
+ats_pilot_output/
+
+# Airflow local state
+airflow.db
+airflow.cfg
+standalone_admin_password.txt
+logs/
+
+# Temporary inspection/render artifacts
+.tmp_ppt_inspect/
+DevCompass_First_PT/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
