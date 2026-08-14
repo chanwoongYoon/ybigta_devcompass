@@ -21,6 +21,7 @@ data/
 ats_pilot_output/
 
 # Airflow local state
+.airflow/
 airflow.db
 airflow.cfg
 standalone_admin_password.txt
