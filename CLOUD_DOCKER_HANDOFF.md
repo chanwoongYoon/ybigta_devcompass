@@ -291,21 +291,8 @@ devcompass-airflow:<release-version>
 운영 배포에서는 `latest` 태그만 의존하지 않고 커밋 SHA 또는 고정 Release
 버전으로 어떤 코드가 실행되었는지 추적 가능하게 한다.
 
-## 12. 배포 전 검증 항목
 
-- [ ] Docker 이미지에서 `import devcompass`가 성공한다.
-- [ ] 두 DAG가 Import Error 없이 표시된다.
-- [ ] `job_role_svc_v1.joblib`이 정상 로딩된다.
-- [ ] 컨테이너에서 ATS 공개 API에 HTTPS 요청이 가능하다.
-- [ ] 컨테이너에서 RDS `devcompass` DB에 연결된다.
-- [ ] Airflow Metadata DB Migration이 완료된다.
-- [ ] RDS 비밀번호가 이미지와 GitHub에 포함되지 않았다.
-- [ ] Collection DAG 소규모 실행이 성공한다.
-- [ ] Enrichment DAG 소규모 실행이 성공한다.
-- [ ] 동일 DAG 재실행 시 중복 데이터가 생기지 않는다.
-- [ ] CloudWatch에서 Task 로그를 확인할 수 있다.
-
-## 13. 로컬 검증 완료 결과
+## 12. 로컬 검증 완료 결과
 
 ```text
 job_posting_history 처리: 5,757건
@@ -317,17 +304,4 @@ job_skill: 11,547행
 orphan FK: 0건
 재실행 대상: 0건
 ```
-
-## 14. 클라우드 팀 확인 요청
-
-- [ ] Fargate에 Self-managed Airflow를 운영할지 MWAA를 사용할지
-- [ ] Airflow Metadata DB 위치와 계정
-- [ ] ECS Service별 CPU/Memory 할당
-- [ ] RDS 및 ECS Security Group 연결
-- [ ] Secrets Manager Secret 이름과 IAM 권한
-- [ ] ATS API 호출용 NAT Gateway 또는 기타 Outbound 경로
-- [ ] Airflow UI 접근 방식
-- [ ] Collection DAG 운영 주기
-- [ ] Collection 완료 후 Enrichment DAG Trigger 방식
-- [ ] ECR Repository와 CI/CD 배포 방식
 
