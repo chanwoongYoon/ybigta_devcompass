@@ -10,6 +10,12 @@ _WORD_EXT = r"A-Za-z0-9_&/.'’‐‑‒–—―+#\-"
 _AMBIGUOUS_CONTEXT_WINDOW = 50
 _HEADER_STRIP_CHARS = ":?!. "
 
+# Company-name skills that should be reported under their product/model name once
+# self-mention filtering has already run. Keeping OpenAI/Anthropic as distinct
+# skill_id values (rather than merging them in skill_alias) preserves per-company
+# self-mention filtering; only the final reported tag is merged.
+_SKILL_NAME_MERGE = {"OpenAI": "GPT", "Anthropic": "Claude"}
+
 _INCLUDE_HEADERS = {
     "about the role",
     "about this role",
@@ -201,11 +207,20 @@ class SkillExtractor:
             [row["alias_text"] for row in ambiguous],
             _WORD_EXT,
         )
+        self.skill_id_by_name = {
+            row["skill_name"]: row["skill_id"] for row in aliases
+        }
 
     def extract(self, description, company_name=None):
         text = section_filtered_text(description)
         if not isinstance(text, str) or not text:
             return []
+
+        company = (
+            str(company_name).strip().lower()
+            if company_name and str(company_name).strip()
+            else None
+        )
 
         matches = {}
         normal_spans = (
@@ -213,17 +228,36 @@ class SkillExtractor:
             if self.normal_pattern
             else []
         )
+        self_mention_spans = []
+        other_spans = []
         for match in normal_spans:
             alias = self.normal_lookup[match.group().lower()]
-            matches.setdefault(
-                alias["skill_id"],
-                {
-                    "skill_id": alias["skill_id"],
-                    "skill_name": alias["skill_name"],
-                    "matched_text": match.group(),
-                    "match_type": alias["match_policy"],
-                },
+            item = {
+                "skill_id": alias["skill_id"],
+                "skill_name": alias["skill_name"],
+                "matched_text": match.group(),
+                "match_type": alias["match_policy"],
+            }
+            if company and alias["skill_name"].lower() == company:
+                self_mention_spans.append((match, item))
+            else:
+                matches.setdefault(alias["skill_id"], item)
+                other_spans.append(match)
+
+        # A skill whose name exactly matches the posting company (e.g. "Cloudflare"
+        # in a Cloudflare posting) is only kept if another, unrelated skill is
+        # mentioned nearby -- otherwise it's almost always a self-introduction
+        # ("We are Cloudflare...") rather than a real tech-stack mention.
+        for match, item in self_mention_spans:
+            start, end = match.span()
+            window_start = start - _AMBIGUOUS_CONTEXT_WINDOW
+            window_end = end + _AMBIGUOUS_CONTEXT_WINDOW
+            has_nearby_tech = any(
+                span.start() < window_end and span.end() > window_start
+                for span in other_spans
             )
+            if has_nearby_tech:
+                matches.setdefault(item["skill_id"], item)
 
         if self.ambiguous_pattern:
             for match in self.ambiguous_pattern.finditer(text):
@@ -246,26 +280,23 @@ class SkillExtractor:
                     },
                 )
 
-        if company_name and str(company_name).strip():
-            company = str(company_name).strip().lower()
-            company_first = company.split()[0]
-
-            def is_self_mention(item):
-                skill_name = item["skill_name"].lower()
-                if skill_name == company:
-                    return True
-                if len(skill_name) <= 2:
-                    return False
-                return (
-                    company in skill_name
-                    or skill_name in company
-                    or company_first in skill_name
-                )
-
-            matches = {
-                skill_id: item
-                for skill_id, item in matches.items()
-                if not is_self_mention(item)
-            }
+        for source_name, target_name in _SKILL_NAME_MERGE.items():
+            source_items = [
+                item
+                for item in matches.values()
+                if item["skill_name"] == source_name
+            ]
+            if not source_items:
+                continue
+            target_id = self.skill_id_by_name.get(target_name)
+            if target_id is None:
+                continue
+            for item in source_items:
+                del matches[item["skill_id"]]
+            if target_id not in matches:
+                merged = dict(source_items[0])
+                merged["skill_id"] = target_id
+                merged["skill_name"] = target_name
+                matches[target_id] = merged
 
         return sorted(matches.values(), key=lambda item: item["skill_name"])

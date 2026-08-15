@@ -24,6 +24,10 @@ ALIASES = [
     (16, "React", "React", "normal"),
     (17, "AWS", "AWS", "normal"),
     (18, "GCP", "GCP", "normal"),
+    (19, "OpenAI", "OpenAI", "normal"),
+    (20, "GPT", "GPT", "normal"),
+    (21, "Anthropic", "Anthropic", "normal"),
+    (22, "Claude", "Claude", "normal"),
 ]
 
 
@@ -88,7 +92,7 @@ Python and Kubernetes
     def test_company_self_mention(self):
         self.assertEqual(
             self.names("Requirements\nMongoDB Atlas", "MongoDB"),
-            set(),
+            {"MongoDB Atlas"},
         )
         self.assertEqual(
             self.names("Requirements\nMongoDB Atlas", "Stripe"),
@@ -99,8 +103,47 @@ Python and Kubernetes
             set(),
         )
         self.assertEqual(
+            self.names(
+                "Requirements\nCloudflare, Kubernetes, and Python",
+                "Cloudflare",
+            ),
+            {"Cloudflare", "Kubernetes", "Python"},
+        )
+        self.assertEqual(
             self.names("Requirements\nC++ and C", "Anthropic"),
             {"C++", "C"},
+        )
+
+    def test_company_name_skill_merge(self):
+        self.assertEqual(
+            self.names("Requirements\nExperience with GPT and OpenAI models"),
+            {"GPT"},
+        )
+        self.assertEqual(
+            self.names("Requirements\nOpenAI required.", "Stripe"),
+            {"GPT"},
+        )
+        self.assertEqual(
+            self.names("Requirements\nOpenAI required.", "OpenAI"),
+            set(),
+        )
+        self.assertEqual(
+            self.names(
+                "Requirements\nOpenAI, Kubernetes, and Python required.",
+                "OpenAI",
+            ),
+            {"GPT", "Kubernetes", "Python"},
+        )
+        self.assertEqual(
+            self.names("Requirements\nAnthropic required.", "Anthropic"),
+            set(),
+        )
+        self.assertEqual(
+            self.names(
+                "Requirements\nAnthropic, Kubernetes, and Python required.",
+                "Anthropic",
+            ),
+            {"Claude", "Kubernetes", "Python"},
         )
 
 
